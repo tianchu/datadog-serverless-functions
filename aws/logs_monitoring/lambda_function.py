@@ -1,8 +1,3 @@
-# IMPORTANT NOTE: When upgrading, please ensure your forwarder Lambda function
-# has the latest Datadog Lambda Layer installed.
-# https://github.com/DataDog/datadog-serverless-functions/tree/master/aws/logs_monitoring#3-add-the-datadog-lambda-layer
-
-
 # Unless explicitly stated otherwise all files in this repository are licensed
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
@@ -194,7 +189,12 @@ include_regex = compileRegex("INCLUDE_AT_MATCH", INCLUDE_AT_MATCH)
 EXCLUDE_AT_MATCH = os.getenv("EXCLUDE_AT_MATCH", default=None)
 exclude_regex = compileRegex("EXCLUDE_AT_MATCH", EXCLUDE_AT_MATCH)
 
-if "DD_KMS_API_KEY" in os.environ:
+if "DD_API_KEY_SECRET_ARN" in os.environ:
+    SECRET_ARN = os.environ["DD_API_KEY_SECRET_ARN"]
+    DD_API_KEY = boto3.client("secretsmanager").get_secret_value(
+        SecretId=SECRET_ARN
+    )["SecretString"]
+elif "DD_KMS_API_KEY" in os.environ:
     ENCRYPTED = os.environ["DD_KMS_API_KEY"]
     DD_API_KEY = boto3.client("kms").decrypt(
         CiphertextBlob=base64.b64decode(ENCRYPTED)
@@ -255,7 +255,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "2.3.4"
+DD_FORWARDER_VERSION = os.environ.get("DD_FORWARDER_VERSION", "unknown")
 
 class RetriableException(Exception):
     pass
